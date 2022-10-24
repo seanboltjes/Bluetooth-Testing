@@ -120,20 +120,6 @@ struct gatts_profile_inst gl_profile_tab[PROFILE_NUM] = {
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
     switch (event) {
-#ifdef CONFIG_SET_RAW_ADV_DATA
-    case ESP_GAP_BLE_ADV_DATA_RAW_SET_COMPLETE_EVT:
-        adv_config_done &= (~adv_config_flag);
-        if (adv_config_done==0){
-            esp_ble_gap_start_advertising(&adv_params);
-        }
-        break;
-    case ESP_GAP_BLE_SCAN_RSP_DATA_RAW_SET_COMPLETE_EVT:
-        adv_config_done &= (~scan_rsp_config_flag);
-        if (adv_config_done==0){
-            esp_ble_gap_start_advertising(&adv_params);
-        }
-        break;
-#else
     case ESP_GAP_BLE_ADV_DATA_SET_COMPLETE_EVT:
         adv_config_done &= (~adv_config_flag);
         if (adv_config_done == 0){
@@ -146,7 +132,6 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             esp_ble_gap_start_advertising(&adv_params);
         }
         break;
-#endif
     case ESP_GAP_BLE_ADV_START_COMPLETE_EVT:
         //advertising start complete event to indicate advertising start successfully or failed
         if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
@@ -175,47 +160,47 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
 }
 
 void example_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param){
-    esp_gatt_status_t status = ESP_GATT_OK;
-    if (param->write.need_rsp){
-        if (param->write.is_prep){
-            if (prepare_write_env->prepare_buf == NULL) {
-                prepare_write_env->prepare_buf = (uint8_t *)malloc(PREPARE_BUF_MAX_SIZE*sizeof(uint8_t));
-                prepare_write_env->prepare_len = 0;
-                if (prepare_write_env->prepare_buf == NULL) {
-                    ESP_LOGE(GATTS_TAG, "Gatt_server prep no mem\n");
-                    status = ESP_GATT_NO_RESOURCES;
-                }
-            } else {
-                if(param->write.offset > PREPARE_BUF_MAX_SIZE) {
-                    status = ESP_GATT_INVALID_OFFSET;
-                } else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE) {
-                    status = ESP_GATT_INVALID_ATTR_LEN;
-                }
-            }
+    // esp_gatt_status_t status = ESP_GATT_OK;
+    // if (param->write.need_rsp){
+    //     if (param->write.is_prep){
+    //         if (prepare_write_env->prepare_buf == NULL) {
+    //             prepare_write_env->prepare_buf = (uint8_t *)malloc(PREPARE_BUF_MAX_SIZE*sizeof(uint8_t));
+    //             prepare_write_env->prepare_len = 0;
+    //             if (prepare_write_env->prepare_buf == NULL) {
+    //                 ESP_LOGE(GATTS_TAG, "Gatt_server prep no mem\n");
+    //                 status = ESP_GATT_NO_RESOURCES;
+    //             }
+    //         } else {
+    //             if(param->write.offset > PREPARE_BUF_MAX_SIZE) {
+    //                 status = ESP_GATT_INVALID_OFFSET;
+    //             } else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE) {
+    //                 status = ESP_GATT_INVALID_ATTR_LEN;
+    //             }
+    //         }
 
-            esp_gatt_rsp_t *gatt_rsp = (esp_gatt_rsp_t *)malloc(sizeof(esp_gatt_rsp_t));
-            gatt_rsp->attr_value.len = param->write.len;
-            gatt_rsp->attr_value.handle = param->write.handle;
-            gatt_rsp->attr_value.offset = param->write.offset;
-            gatt_rsp->attr_value.auth_req = ESP_GATT_AUTH_REQ_NONE;
-            memcpy(gatt_rsp->attr_value.value, param->write.value, param->write.len);
-            esp_err_t response_err = esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, gatt_rsp);
-            if (response_err != ESP_OK){
-               ESP_LOGE(GATTS_TAG, "Send response error\n");
-            }
-            free(gatt_rsp);
-            if (status != ESP_GATT_OK){
-                return;
-            }
-            memcpy(prepare_write_env->prepare_buf + param->write.offset,
-                   param->write.value,
-                   param->write.len);
-            prepare_write_env->prepare_len += param->write.len;
+    //         esp_gatt_rsp_t *gatt_rsp = (esp_gatt_rsp_t *)malloc(sizeof(esp_gatt_rsp_t));
+    //         gatt_rsp->attr_value.len = param->write.len;
+    //         gatt_rsp->attr_value.handle = param->write.handle;
+    //         gatt_rsp->attr_value.offset = param->write.offset;
+    //         gatt_rsp->attr_value.auth_req = ESP_GATT_AUTH_REQ_NONE;
+    //         memcpy(gatt_rsp->attr_value.value, param->write.value, param->write.len);
+    //         esp_err_t response_err = esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, gatt_rsp);
+    //         if (response_err != ESP_OK){
+    //            ESP_LOGE(GATTS_TAG, "Send response error\n");
+    //         }
+    //         free(gatt_rsp);
+    //         if (status != ESP_GATT_OK){
+    //             return;
+    //         }
+    //         memcpy(prepare_write_env->prepare_buf + param->write.offset,
+    //                param->write.value,
+    //                param->write.len);
+    //         prepare_write_env->prepare_len += param->write.len;
 
-        }else{
-            esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, NULL);
-        }
-    }
+    //     }else{
+    //         esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, NULL);
+    //     }
+    // }
 }
 
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param){
@@ -244,18 +229,6 @@ void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gat
         if (set_dev_name_ret){
             ESP_LOGE(GATTS_TAG, "set device name failed, error code = %x", set_dev_name_ret);
         }
-#ifdef CONFIG_SET_RAW_ADV_DATA
-        esp_err_t raw_adv_ret = esp_ble_gap_config_adv_data_raw(raw_adv_data, sizeof(raw_adv_data));
-        if (raw_adv_ret){
-            ESP_LOGE(GATTS_TAG, "config raw adv data failed, error code = %x ", raw_adv_ret);
-        }
-        adv_config_done |= adv_config_flag;
-        esp_err_t raw_scan_ret = esp_ble_gap_config_scan_rsp_data_raw(raw_scan_rsp_data, sizeof(raw_scan_rsp_data));
-        if (raw_scan_ret){
-            ESP_LOGE(GATTS_TAG, "config raw scan rsp data failed, error code = %x", raw_scan_ret);
-        }
-        adv_config_done |= scan_rsp_config_flag;
-#else
         //config adv data
         esp_err_t ret = esp_ble_gap_config_adv_data(&adv_data);
         if (ret){
@@ -269,7 +242,6 @@ void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gat
         }
         adv_config_done |= scan_rsp_config_flag;
 
-#endif
         esp_ble_gatts_create_service(gatts_if, &gl_profile_tab[PROFILE_A_APP_ID].service_id, GATTS_NUM_HANDLE_TEST_A);
         break;
     case ESP_GATTS_READ_EVT: {
@@ -327,7 +299,7 @@ void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gat
 
             }
         }
-        example_write_event_env(gatts_if, &a_prepare_write_env, param);
+        // example_write_event_env(gatts_if, &a_prepare_write_env, param);
         break;
     }
     case ESP_GATTS_EXEC_WRITE_EVT:
