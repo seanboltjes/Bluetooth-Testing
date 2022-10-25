@@ -21,7 +21,8 @@
 
 
 
-
+uint8_t* storedData;
+uint16_t storedDataLen;
 
 uint8_t char1_str[] = {0x11,0x22,0x33};
 esp_gatt_char_prop_t a_property = 0;
@@ -115,6 +116,47 @@ struct gatts_profile_inst gl_profile_tab[PROFILE_NUM] = {
         .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
     }
 };
+
+
+
+
+
+/**
+ * @brief This sets data to our transmit buffer. 
+ * Basically what this is doing is populatinng storedData with the floats converted to uint8_t.
+ * This ensures that the data is easy to transmit and is in a universal standard.
+ * The data stored in the buffer will be transmitted when the app sends a ESP_GATTS_READ_EVT event.
+ * 
+ * @param data - an array of floats to put in the transmit buffer
+ * @param len - the length of the array of floats (number of floats, NOT NUMBER OF BYTES)
+ */
+void set_transmit_buffer(float* data, uint16_t len)
+{
+    // free the past data if any is present
+    free (storedData);
+
+    // Allocate the memory needed to store all these floats
+    storedDataLen = len * 4;
+    storedData = malloc(sizeof(uint8_t) * storedDataLen);
+
+    // iterate through and convert floats to individual bytes to be easily transmitted
+    for (uint16_t i = 0; i < storedDataLen; i += 4)
+    {
+        // Convert the float to a uint32_t. By multiplying by 1000000 we will be preserving 6 decimals of precision
+        uint32_t shiftedDataAsUint = data[i / 4] * 1000000;
+
+        // Perform bitwise shifts to store the data in the allocated memory
+        storedData[i] =     (shiftedDataAsUint) & 0xFF;
+        storedData[i + 1] = (shiftedDataAsUint >> 8) & 0xFF;
+        storedData[i + 2] = (shiftedDataAsUint >> 16) & 0xFF;
+        storedData[i + 3] = (shiftedDataAsUint >> 24) & 0xFF;
+    }
+}
+
+
+
+
+
 
 
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
@@ -249,11 +291,17 @@ void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gat
         esp_gatt_rsp_t rsp;
         memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
         rsp.attr_value.handle = param->read.handle;
-        rsp.attr_value.len = 4;
-        rsp.attr_value.value[0] = 0xde;
-        rsp.attr_value.value[1] = 0xed;
-        rsp.attr_value.value[2] = 0xbe;
-        rsp.attr_value.value[3] = 0xef;
+        // rsp.attr_value.len = 4;
+        // rsp.attr_value.value[0] = 0xde;
+        // rsp.attr_value.value[1] = 0xed;
+        // rsp.attr_value.value[2] = 0xbe;
+        // rsp.attr_value.value[3] = 0xef;
+
+        rsp.attr_value.len = storedDataLen;
+        for (uint16_t i = 0; i < storedDataLen; i++) {
+            rsp.attr_value.value[i] = storedData[i];
+        }
+        
         esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id,
                                     ESP_GATT_OK, &rsp);
         break;

@@ -57,5 +57,13 @@ void app_main(void)
         ESP_LOGE(GATTS_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
 
+
+
+
+
+    float data[] = {1.2, 2.3, 3.3, 4.4, 5.5};
+
+    set_transmit_buffer(data, 5);
+
     return;
 }
